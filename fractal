@@ -1,0 +1,115 @@
+import controlP5.*;
+
+int maxIter = 128;
+double minRe = -2.5, maxRe = 2.5;
+double minIm = -2.5, maxIm = 2.5;
+double zoom = 1.0;
+
+double juliaRe = -0.7;
+double juliaIm = 0.27015;
+
+color[] colors;
+
+ControlP5 cp5;
+
+void setup() {
+  size(800, 800);
+  colors = new color[]{
+    color(0, 7, 100), color(32, 107, 203), 
+    color(237, 255, 255), color(255, 170, 0), 
+    color(0, 2, 0)
+  };
+
+  cp5 = new ControlP5(this);
+
+  cp5.addButton("zoomIn")
+    .setPosition(10, 10)
+    .setSize(80, 30)
+    .setCaptionLabel("Zoom In");
+
+  cp5.addButton("zoomOut")
+    .setPosition(100, 10)
+    .setSize(80, 30)
+    .setCaptionLabel("Zoom Out");
+    
+  cp5.addButton("increaseIterations")
+    .setPosition(200, 10)
+    .setSize(150, 30)
+    .setCaptionLabel("Increase Iterations");
+  
+  cp5.addButton("decreaseIterations")
+    .setPosition(360, 10)
+    .setSize(150, 30)
+    .setCaptionLabel("Decrease Iterations");
+}
+
+void draw() {
+  loadPixels();
+  for (int y = 0; y < height; y++) {
+    for (int x = 0; x < width; x++) {
+      double zx = map((float)x, 0, (float)width, (float)minRe, (float)maxRe);
+      double zy = map((float)y, 0, (float)height, (float)minIm, (float)maxIm);
+
+      int iter;
+      for (iter = 0; iter < maxIter; iter++) {
+        double temp = zx * zx - zy * zy + juliaRe;
+        zy = 2.0 * zx * zy + juliaIm;
+        zx = temp;
+
+        if (zx * zx + zy * zy > 4) {
+          break;
+        }
+      }
+
+      int maxColor = colors.length - 1;
+      double mu = 1.0 * iter / maxIter;
+      mu *= maxColor;
+      int iMu = (int)mu;
+      color color1 = colors[iMu];
+      color color2 = colors[min(iMu + 1, maxColor)];
+      color c = linearInterpolation(color1, color2, mu - iMu);
+      pixels[x + y * width] = c;
+    }
+  }
+  updatePixels();
+
+}
+
+void controlEvent(ControlEvent theEvent) {
+  if (theEvent.isController()) {
+    if (theEvent.getController().getName().equals("zoomIn")) {
+      zoomX(1.5);
+      zoom *= 1.5;
+    }
+    else if (theEvent.getController().getName().equals("zoomOut")) {
+      zoomX(1.0 / 1.5);
+      zoom /= 1.5;
+    }
+    else if (theEvent.getController().getName().equals("increaseIterations")) {
+      maxIter *= 2; 
+    }
+    else if (theEvent.getController().getName().equals("decreaseIterations")) {
+      maxIter /= 2; 
+    }
+  }
+}
+
+void zoomX(double factor) {
+  double centerRe = (minRe + maxRe) / 2;
+  double centerIm = (minIm + maxIm) / 2;
+
+  double newWidth = (maxRe - minRe) * factor;
+  double newHeight = (maxIm - minIm) * factor;
+
+  minRe = centerRe - newWidth / 2;
+  maxRe = centerRe + newWidth / 2;
+  minIm = centerIm - newHeight / 2;
+  maxIm = centerIm + newHeight / 2;
+}
+
+color linearInterpolation(color c1, color c2, double t) {
+  float r = lerp(red(c1), red(c2), (float)t);
+  float g = lerp(green(c1), green(c2), (float)t);
+  float b = lerp(blue(c1), blue(c2), (float)t);
+  return color(r, g, b);
+}
